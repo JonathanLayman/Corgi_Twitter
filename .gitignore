@@ -1,0 +1,4 @@
+settings.py
+*.jpg
+__pycache__
+.idea
