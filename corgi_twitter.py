@@ -5,6 +5,8 @@ import os
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
+from email.mime import base
+from email import encoders
 from datetime import date, timedelta
 import random
 from settings import *
@@ -12,7 +14,7 @@ from settings import *
 # Twitter API setup
 api = twitter.Api(consumer_key=ckey, consumer_secret=csecret, access_token_key=atoken, access_token_secret=asecret)
 yesterday = (date.today() - timedelta(1)).strftime('%Y-%m-%d')
-result = api.GetSearch(term='Corgi', count=100, lang='en', since=yesterday)
+result = api.GetSearch(term='#Corgi', count=100, lang='en', since=yesterday)
 corgi_pics = []
 final_tweet = ''
 
@@ -26,8 +28,18 @@ def send_mail(img_file_name):
 
     text = MIMEText(random.choice(content))
     msg.attach(text)
-    image = MIMEImage(img_data, name=os.path.basename(img_file_name))
-    msg.attach(image)
+    if img_file_name[-3:] == 'jpg':
+        image = MIMEImage(img_data, name=os.path.basename(img_file_name))
+        msg.attach(image)
+    else:
+        part = base.MIMEBase('application', 'Corgi')
+        file = open(img_file_name, 'rb')
+        part.set_payload(file.read())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(img_file_name))
+        msg.attach(part)
+
+
 
     s = smtplib.SMTP(smtp_gmail)
     s.ehlo()
@@ -41,9 +53,10 @@ def send_mail(img_file_name):
 # get list of urls for pictures of corgis
 for tweet in result:
     tweet = tweet.AsDict()
-    if 'media' in tweet and tweet['media'][0]['type'] == 'photo':
-        if 'retweet_count' in tweet:
-            corgi_pics.append(tweet)
+    if 'media' in tweet:
+        if tweet['media'][0]['type'] == 'photo' or tweet['media'][0]['type'] == 'animated_gif':
+            if 'retweet_count' in tweet:
+                corgi_pics.append(tweet)
 
 # find the highest amount of retweets
 retweets = max([retweet_count['retweet_count'] for retweet_count in [tweet for tweet in corgi_pics]])
@@ -51,8 +64,14 @@ retweets = max([retweet_count['retweet_count'] for retweet_count in [tweet for t
 # find the tweet that matches the highest number
 for tweet in corgi_pics:
     if tweet['retweet_count'] == retweets:
-        final_tweet = tweet['media'][0]['media_url']
+        if tweet['media'][0]['type'] == 'photo':
+            final_tweet = tweet['media'][0]['media_url']
+            # print(final_tweet)
+        elif tweet['media'][0]['type'] == 'animated_gif':
+            final_tweet = tweet['media'][0]['video_info']['variants'][0]['url']
+            # print(final_tweet)
 
-urllib.request.urlretrieve(final_tweet, 'daily_corgi.jpg')
+filename = 'images/daily_corgi.' + final_tweet[-3:]
+urllib.request.urlretrieve(final_tweet, filename)
 
-send_mail('daily_corgi.jpg')
+send_mail(filename)

@@ -1,4 +1,5 @@
 settings.py
-*.jpg
 __pycache__
 .idea
+images/*
+!images/.gitkeep
