@@ -3,7 +3,7 @@ An app that finds the most retweeted corgi picture in the last day and emails it
 
 # Installation
 1. Install Python 3.x
-2. pip install python twitter
+2. pip install python-twitter
 3. Clone the repository
 5. Obtain a Twitter API key
 6. Fill in the settings_template.py file with your twitter API key, to and from email addresses,
